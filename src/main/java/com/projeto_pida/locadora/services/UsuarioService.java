@@ -24,11 +24,27 @@ public class UsuarioService {
     }
 
     public Usuario salvar(Usuario usuario) {
-        // Aqui futuramente você pode colocar a lógica de criptografia de senha
+        // Aqui futuramente colocar a lógica de criptografia de senha
         return repository.save(usuario);
     }
 
     public void deletar(Long id) {
         repository.deleteById(id);
     }
+
+    public Usuario alterar(Long id, Usuario obj) {
+    Usuario entidade = repository.getReferenceById(id); // Prepara o objeto monitorado pelo JPA
+    atualizarDados(entidade, obj);
+    return repository.save(entidade);
+}
+
+private void atualizarDados(Usuario entidade, Usuario obj) {
+    entidade.setNome(obj.getNome());
+    entidade.setEmail(obj.getEmail());
+    entidade.setSenha(obj.getSenha());
+    entidade.setPerfil(obj.getPerfil());
+    entidade.setCnh(obj.getCnh());
+    entidade.setCpf(obj.getCpf());
+    // Adicione outros campos que deseja permitir a alteração (CPF e CNH geralmente não mudam)
+}
 }
