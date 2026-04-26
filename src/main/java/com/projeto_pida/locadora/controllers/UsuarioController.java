@@ -42,4 +42,10 @@ public ResponseEntity<Usuario> update(@PathVariable Long id, @RequestBody Usuari
     obj = service.alterar(id, obj);
     return ResponseEntity.ok().body(obj);
 }
+
+ @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        service.deletar(id);
+        return ResponseEntity.noContent().build();
+    }
 }
