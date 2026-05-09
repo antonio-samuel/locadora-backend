@@ -24,6 +24,9 @@ public class LocacaoService {
     @Autowired
     private VeiculoRepository veiculoRepository;
 
+    @Autowired
+    private NotificacaoRepository notificacaoRepository;
+
     public List<Locacao> listarTodas() {
         return repository.findAll();
     }
@@ -36,7 +39,7 @@ public class LocacaoService {
         repository.deleteById(id);
     }
 
-    private NotificacaoRepository notificacaoRepository;
+    
     public Locacao salvar(Locacao locacao) {
     // 1. Busca o veículo e valida
     Veiculo veiculo = veiculoRepository.findById(locacao.getVeiculo().getId())
@@ -59,14 +62,15 @@ public class LocacaoService {
 
     // 5Criar notificação automática
     // Certifique-se de que a NotificacaoService ou Repository está injetada com @Autowired
-    Notificacao nota = new Notificacao();
-    nota.setUsuario(locacaoSalva.getUsuario());
-    nota.setMensagem("Sua locação do veículo ID " + locacaoSalva.getVeiculo().getId() + " foi confirmada!");
+   Notificacao nota = new Notificacao();
+    nota.setUsuario(locacaoSalva.getUsuario()); // Pega o usuário da locação
+    nota.setMensagem("Reserva confirmada: Veículo " + locacaoSalva.getVeiculo().getModelo() + " valor: R$ " + locacaoSalva.getValorTotal());
     nota.setDataEnvio(LocalDateTime.now());
     nota.setLida(false);
-    notificacaoRepository.save(nota);
 
-    // 6. Retorno único no final do método
+    // 3. COMANDO CRUCIAL: Salva no banco de dados
+    notificacaoRepository.save(nota); 
+
     return locacaoSalva;
 
     }
