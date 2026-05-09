@@ -4,6 +4,9 @@ import com.projeto_pida.locadora.entities.Usuario;
 import com.projeto_pida.locadora.repositories.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.projeto_pida.locadora.config.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +16,9 @@ public class UsuarioService {
 
     @Autowired
     private UsuarioRepository repository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public List<Usuario> listarTodos() {
         return repository.findAll();
@@ -24,7 +30,10 @@ public class UsuarioService {
     }
 
     public Usuario salvar(Usuario usuario) {
-        // Aqui futuramente colocar a lógica de criptografia de senha
+        // Pega a senha que veio do Thunder Client, criptografa e define de volta no objeto
+        String senhaCriptografada = passwordEncoder.encode(usuario.getSenha());
+        usuario.setSenha(senhaCriptografada);
+        
         return repository.save(usuario);
     }
 
@@ -41,10 +50,15 @@ public class UsuarioService {
 private void atualizarDados(Usuario entidade, Usuario obj) {
     entidade.setNome(obj.getNome());
     entidade.setEmail(obj.getEmail());
-    entidade.setSenha(obj.getSenha());
+    
+    // Verificação de segurança: só criptografa se houver uma senha enviada
+    if (obj.getSenha() != null && !obj.getSenha().isEmpty()) {
+        String senhaCriptografada = passwordEncoder.encode(obj.getSenha());
+        entidade.setSenha(senhaCriptografada);
+    }
+    
     entidade.setPerfil(obj.getPerfil());
     entidade.setCnh(obj.getCnh());
     entidade.setCpf(obj.getCpf());
-    // Adicione outros campos que deseja permitir a alteração (CPF e CNH geralmente não mudam)
 }
 }

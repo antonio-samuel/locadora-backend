@@ -12,6 +12,7 @@ public class Locacao {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
     @ManyToOne
@@ -22,10 +23,21 @@ public class Locacao {
     @JoinColumn(name = "veiculo_id", nullable = false)
     private Veiculo veiculo;
 
+    @Column(name = "data_emprestimo")
     private LocalDateTime dataEmprestimo;
+
+    @Column(name = "data_devolucao_prevista")
     private LocalDateTime dataDevolucaoPrevista;
+
+    @Column(name = "data_devolucao_real")
     private LocalDateTime dataDevolucaoReal;
-    
+
+    @Column(name = "valor_total")
     private BigDecimal valorTotal;
-    private String status; // Ex: ATIVA, CONCLUIDA, CANCELADA
+
+    @Column(name = "valor_multa")
+    private BigDecimal valorMulta;
+
+    @Column(name = "status")
+    private String status;
 }

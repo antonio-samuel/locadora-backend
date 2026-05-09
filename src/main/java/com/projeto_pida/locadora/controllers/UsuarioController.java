@@ -37,7 +37,7 @@ public class UsuarioController {
     }
     
     // Alterar usuário: PUT http://localhost:8081/usuarios/1
-    @PutMapping("/{id}")
+@PutMapping("/{id}")
 public ResponseEntity<Usuario> update(@PathVariable Long id, @RequestBody Usuario obj) {
     obj = service.alterar(id, obj);
     return ResponseEntity.ok().body(obj);
