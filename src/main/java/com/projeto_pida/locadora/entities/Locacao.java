@@ -3,6 +3,9 @@ package com.projeto_pida.locadora.entities;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import java.math.BigDecimal;
 
 @Entity
@@ -33,11 +36,15 @@ public class Locacao {
     private LocalDateTime dataDevolucaoReal;
 
     @Column(name = "valor_total")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "0.00")
     private BigDecimal valorTotal;
 
     @Column(name = "valor_multa")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "0.00")
     private BigDecimal valorMulta;
 
     @Column(name = "status")
     private String status;
+
+    
 }

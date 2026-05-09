@@ -57,7 +57,7 @@ public class LocacaoService {
     // 4. Salva a locação no banco (AQUI VOCÊ SALVA UMA VEZ SÓ)
     Locacao locacaoSalva = repository.save(locacao);
 
-    // 5 Criar notificação automática
+    // 5Criar notificação automática
     // Certifique-se de que a NotificacaoService ou Repository está injetada com @Autowired
     Notificacao nota = new Notificacao();
     nota.setUsuario(locacaoSalva.getUsuario());
@@ -100,6 +100,43 @@ public class LocacaoService {
 
         return repository.save(locacao);
     }
+public Locacao alterar(Long id, Locacao obj) {
+    Locacao entidade = repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Locação não encontrada"));
 
+    // 1. Atualiza as datas básicas (Empréstimo e Prevista)
+    if (obj.getDataEmprestimo() != null) {
+        entidade.setDataEmprestimo(obj.getDataEmprestimo());
+    }
+    if (obj.getDataDevolucaoPrevista() != null) {
+        entidade.setDataDevolucaoPrevista(obj.getDataDevolucaoPrevista());
+    }
+
+    // 2. ATUALIZA A DATA REAL (Esta é a parte que está a faltar!)
+    if (obj.getDataDevolucaoReal() != null) {
+        entidade.setDataDevolucaoReal(obj.getDataDevolucaoReal());
+        
+        // Lógica da Multa: Se a real for depois da prevista
+        if (entidade.getDataDevolucaoReal().isAfter(entidade.getDataDevolucaoPrevista())) {
+            // Calcula 20% sobre o valor total atual
+            BigDecimal multa = entidade.getValorTotal().multiply(new BigDecimal("0.20"));
+            entidade.setValorMulta(multa);
+            
+            // Soma a multa ao valor total
+            entidade.setValorTotal(entidade.getValorTotal().add(multa));
+            entidade.setStatus("CONCLUIDA_COM_ATRASO");
+        } else {
+            entidade.setStatus("CONCLUIDA_NO_PRAZO");
+        }
+        
+        // Liberta o veículo
+        if (entidade.getVeiculo() != null) {
+            entidade.getVeiculo().setDisponivel(true);
+            veiculoRepository.save(entidade.getVeiculo());
+        }
+    }
+
+    return repository.save(entidade);
+}
     
 }

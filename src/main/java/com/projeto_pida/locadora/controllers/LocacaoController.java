@@ -38,4 +38,16 @@ public class LocacaoController {
         service.deletar(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{id}/finalizar")
+public ResponseEntity<Locacao> finalizar(@PathVariable Long id) {
+    Locacao obj = service.finalizarLocacao(id);
+    return ResponseEntity.ok().body(obj);
+}
+
+@PutMapping("/{id}")
+public ResponseEntity<Locacao> update(@PathVariable Long id, @RequestBody Locacao obj) {
+    obj = service.alterar(id, obj);
+    return ResponseEntity.ok().body(obj);
+}
 }
