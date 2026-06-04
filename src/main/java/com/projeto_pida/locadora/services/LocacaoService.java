@@ -142,5 +142,24 @@ public Locacao alterar(Long id, Locacao obj) {
 
     return repository.save(entidade);
 }
-    
+public List<Locacao> listarPorUsuario(Long usuarioId) {
+    return repository.findByUsuarioId(usuarioId);
+}
+    public Locacao cancelarLocacao(Long id) {
+    Locacao locacao = repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Locação não encontrada"));
+
+    if (!locacao.getStatus().equals("ATIVA")) {
+        throw new RuntimeException("Apenas locações ativas podem ser canceladas.");
+    }
+
+    // Libera o veículo
+    Veiculo veiculo = locacao.getVeiculo();
+    veiculo.setDisponivel(true);
+    veiculoRepository.save(veiculo);
+
+    // Atualiza o status
+    locacao.setStatus("CANCELADA");
+    return repository.save(locacao);
+}
 }

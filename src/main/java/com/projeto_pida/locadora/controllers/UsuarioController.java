@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@CrossOrigin(origins = "*") // Libera para o frontend conseguir consumir a API
 @RequestMapping("/usuarios")
 public class UsuarioController {
 
@@ -31,10 +32,15 @@ public class UsuarioController {
 
     // Criar novo usuário: POST http://localhost:8080/usuarios
     @PostMapping
-    public ResponseEntity<Usuario> insert(@RequestBody Usuario obj) {
-        obj = service.salvar(obj);
-        return ResponseEntity.ok().body(obj);
+public ResponseEntity<?> salvar(@RequestBody Usuario obj) {
+    try {
+        Usuario usuarioSalvo = service.salvar(obj);
+        return ResponseEntity.ok(usuarioSalvo);
+    } catch (RuntimeException e) {
+        // Envia o texto "DUPLICADO_CPF", "DUPLICADO_CNH" para o frontend
+        return ResponseEntity.badRequest().body(e.getMessage());
     }
+}
     
     // Alterar usuário: PUT http://localhost:8081/usuarios/1
 @PutMapping("/{id}")

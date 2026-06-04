@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@CrossOrigin(origins = "*") // Libera para o frontend conseguir consumir a API
 @RequestMapping("/locacoes")
 public class LocacaoController {
 
@@ -49,5 +50,19 @@ public ResponseEntity<Locacao> finalizar(@PathVariable Long id) {
 public ResponseEntity<Locacao> update(@PathVariable Long id, @RequestBody Locacao obj) {
     obj = service.alterar(id, obj);
     return ResponseEntity.ok().body(obj);
+}
+@GetMapping("/usuario/{usuarioId}")
+public ResponseEntity<List<Locacao>> findByUsuario(@PathVariable Long usuarioId) {
+    List<Locacao> lista = service.listarPorUsuario(usuarioId);
+    return ResponseEntity.ok().body(lista);
+}
+@PutMapping("/{id}/cancelar")
+public ResponseEntity<Locacao> cancelar(@PathVariable Long id) {
+    try {
+        Locacao obj = service.cancelarLocacao(id);
+        return ResponseEntity.ok().body(obj);
+    } catch (RuntimeException e) {
+        return ResponseEntity.badRequest().body(null);
+    }
 }
 }

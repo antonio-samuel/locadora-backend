@@ -28,6 +28,9 @@ public class Usuario {
     @Column(nullable = false)
     private String senha;
 
+    @Column(nullable = false, length = 11) 
+    private String telefone;
+
     @Enumerated(EnumType.STRING)
     private Perfil perfil;
 }
