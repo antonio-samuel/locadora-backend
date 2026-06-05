@@ -35,67 +35,89 @@ public class LocacaoService {
         Optional<Locacao> obj = repository.findById(id);
         return obj.orElse(null);
     }
+
     public void deletar(Long id) {
         repository.deleteById(id);
     }
 
-    
+    // ── Cálculo de multa proporcional aos dias de atraso ──────────────────────
+    // Fórmula: diasAtraso × valorDiaria × 0.20
+    // Exemplo: 3 dias de atraso, diária R$100 → multa = 3 × 100 × 0.20 = R$60
+    private BigDecimal calcularMulta(Locacao locacao, LocalDateTime dataReal) {
+        long diasAtraso = ChronoUnit.DAYS.between(
+            locacao.getDataDevolucaoPrevista(), dataReal
+        );
+        if (diasAtraso <= 0) return BigDecimal.ZERO;
+
+        BigDecimal valorDiaria = BigDecimal.valueOf(
+            locacao.getVeiculo().getValorDiaria()
+        );
+        return valorDiaria
+            .multiply(new BigDecimal(diasAtraso))
+            .multiply(new BigDecimal("0.02"));
+    }
+
     public Locacao salvar(Locacao locacao) {
-    // 1. Busca o veículo e valida
-    Veiculo veiculo = veiculoRepository.findById(locacao.getVeiculo().getId())
-            .orElseThrow(() -> new RuntimeException("Veículo não encontrado"));
+        // 1. Busca o veículo e valida
+        Veiculo veiculo = veiculoRepository.findById(locacao.getVeiculo().getId())
+                .orElseThrow(() -> new RuntimeException("Veículo não encontrado"));
 
-    // 2. Cálculo de dias e Valor Total
-    long dias = ChronoUnit.DAYS.between(locacao.getDataEmprestimo(), locacao.getDataDevolucaoPrevista());
-    if (dias <= 0) dias = 1;
+        // 2. Cálculo de dias e valor total
+        long dias = ChronoUnit.DAYS.between(
+            locacao.getDataEmprestimo(), locacao.getDataDevolucaoPrevista()
+        );
+        if (dias <= 0) dias = 1;
 
-    BigDecimal valorDiaria = BigDecimal.valueOf(veiculo.getValorDiaria());
-    BigDecimal valorTotal = valorDiaria.multiply(new BigDecimal(dias));
-    locacao.setValorTotal(valorTotal);
+        BigDecimal valorDiaria = BigDecimal.valueOf(veiculo.getValorDiaria());
+        BigDecimal valorTotal  = valorDiaria.multiply(new BigDecimal(dias));
+        locacao.setValorTotal(valorTotal);
 
-    // 3. Atualiza status do veículo
-    veiculo.setDisponivel(false);
-    veiculoRepository.save(veiculo);
+        // 3. Marca veículo como indisponível
+        veiculo.setDisponivel(false);
+        veiculoRepository.save(veiculo);
 
-    // 4. Salva a locação no banco (AQUI VOCÊ SALVA UMA VEZ SÓ)
-    Locacao locacaoSalva = repository.save(locacao);
+        // 4. Salva a locação
+        Locacao locacaoSalva = repository.save(locacao);
 
-    // 5Criar notificação automática
-    // Certifique-se de que a NotificacaoService ou Repository está injetada com @Autowired
-   Notificacao nota = new Notificacao();
-    nota.setUsuario(locacaoSalva.getUsuario()); // Pega o usuário da locação
-    nota.setMensagem("Reserva confirmada: Veículo " + locacaoSalva.getVeiculo().getModelo() + " valor: R$ " + locacaoSalva.getValorTotal());
-    nota.setDataEnvio(LocalDateTime.now());
-    nota.setLida(false);
+        // 5. Cria notificação automática
+        Notificacao nota = new Notificacao();
+        nota.setUsuario(locacaoSalva.getUsuario());
+        nota.setMensagem("Reserva confirmada: Veículo "
+            + locacaoSalva.getVeiculo().getModelo()
+            + " — Valor: R$ " + locacaoSalva.getValorTotal());
+        nota.setDataEnvio(LocalDateTime.now());
+        nota.setLida(false);
+        notificacaoRepository.save(nota);
 
-    // 3. COMANDO CRUCIAL: Salva no banco de dados
-    notificacaoRepository.save(nota); 
-
-    return locacaoSalva;
-
+        return locacaoSalva;
     }
 
     public Locacao realizarLocacao(Locacao locacao) {
         Veiculo veiculo = veiculoRepository.findById(locacao.getVeiculo().getId())
                 .orElseThrow(() -> new RuntimeException("Veículo não encontrado"));
-        
+
         if (!veiculo.getDisponivel()) {
             throw new RuntimeException("Este veículo já está alugado no momento!");
         }
-        
+
         return salvar(locacao);
     }
 
     public Locacao finalizarLocacao(Long id) {
         Locacao locacao = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Locação não encontrada"));
-        
-        locacao.setDataDevolucaoReal(LocalDateTime.now());
-        
-        if (locacao.getDataDevolucaoReal().isAfter(locacao.getDataDevolucaoPrevista())) {
-            BigDecimal multa = locacao.getValorTotal().multiply(new BigDecimal("0.20"));
+
+        LocalDateTime dataReal = LocalDateTime.now();
+        locacao.setDataDevolucaoReal(dataReal);
+
+        if (dataReal.isAfter(locacao.getDataDevolucaoPrevista())) {
+            // Multa proporcional: diasAtraso × valorDiaria × 20%
+            BigDecimal multa = calcularMulta(locacao, dataReal);
             locacao.setValorMulta(multa);
             locacao.setValorTotal(locacao.getValorTotal().add(multa));
+            locacao.setStatus("CONCLUIDA_COM_ATRASO");
+        } else {
+            locacao.setStatus("CONCLUIDA_NO_PRAZO");
         }
 
         Veiculo v = locacao.getVeiculo();
@@ -104,62 +126,57 @@ public class LocacaoService {
 
         return repository.save(locacao);
     }
-public Locacao alterar(Long id, Locacao obj) {
-    Locacao entidade = repository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Locação não encontrada"));
 
-    // 1. Atualiza as datas básicas (Empréstimo e Prevista)
-    if (obj.getDataEmprestimo() != null) {
-        entidade.setDataEmprestimo(obj.getDataEmprestimo());
-    }
-    if (obj.getDataDevolucaoPrevista() != null) {
-        entidade.setDataDevolucaoPrevista(obj.getDataDevolucaoPrevista());
-    }
+    public Locacao alterar(Long id, Locacao obj) {
+        Locacao entidade = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Locação não encontrada"));
 
-    // 2. ATUALIZA A DATA REAL (Esta é a parte que está a faltar!)
-    if (obj.getDataDevolucaoReal() != null) {
-        entidade.setDataDevolucaoReal(obj.getDataDevolucaoReal());
-        
-        // Lógica da Multa: Se a real for depois da prevista
-        if (entidade.getDataDevolucaoReal().isAfter(entidade.getDataDevolucaoPrevista())) {
-            // Calcula 20% sobre o valor total atual
-            BigDecimal multa = entidade.getValorTotal().multiply(new BigDecimal("0.20"));
-            entidade.setValorMulta(multa);
-            
-            // Soma a multa ao valor total
-            entidade.setValorTotal(entidade.getValorTotal().add(multa));
-            entidade.setStatus("CONCLUIDA_COM_ATRASO");
-        } else {
-            entidade.setStatus("CONCLUIDA_NO_PRAZO");
+        if (obj.getDataEmprestimo() != null) {
+            entidade.setDataEmprestimo(obj.getDataEmprestimo());
         }
-        
-        // Liberta o veículo
-        if (entidade.getVeiculo() != null) {
-            entidade.getVeiculo().setDisponivel(true);
-            veiculoRepository.save(entidade.getVeiculo());
+        if (obj.getDataDevolucaoPrevista() != null) {
+            entidade.setDataDevolucaoPrevista(obj.getDataDevolucaoPrevista());
         }
+
+        if (obj.getDataDevolucaoReal() != null) {
+            entidade.setDataDevolucaoReal(obj.getDataDevolucaoReal());
+
+            if (entidade.getDataDevolucaoReal().isAfter(entidade.getDataDevolucaoPrevista())) {
+                // Multa proporcional: diasAtraso × valorDiaria × 20%
+                BigDecimal multa = calcularMulta(entidade, entidade.getDataDevolucaoReal());
+                entidade.setValorMulta(multa);
+                entidade.setValorTotal(entidade.getValorTotal().add(multa));
+                entidade.setStatus("CONCLUIDA_COM_ATRASO");
+            } else {
+                entidade.setStatus("CONCLUIDA_NO_PRAZO");
+            }
+
+            if (entidade.getVeiculo() != null) {
+                entidade.getVeiculo().setDisponivel(true);
+                veiculoRepository.save(entidade.getVeiculo());
+            }
+        }
+
+        return repository.save(entidade);
     }
 
-    return repository.save(entidade);
-}
-public List<Locacao> listarPorUsuario(Long usuarioId) {
-    return repository.findByUsuarioId(usuarioId);
-}
+    public List<Locacao> listarPorUsuario(Long usuarioId) {
+        return repository.findByUsuarioId(usuarioId);
+    }
+
     public Locacao cancelarLocacao(Long id) {
-    Locacao locacao = repository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Locação não encontrada"));
+        Locacao locacao = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Locação não encontrada"));
 
-    if (!locacao.getStatus().equals("ATIVA")) {
-        throw new RuntimeException("Apenas locações ativas podem ser canceladas.");
+        if (!locacao.getStatus().equals("ATIVA")) {
+            throw new RuntimeException("Apenas locações ativas podem ser canceladas.");
+        }
+
+        Veiculo veiculo = locacao.getVeiculo();
+        veiculo.setDisponivel(true);
+        veiculoRepository.save(veiculo);
+
+        locacao.setStatus("CANCELADA");
+        return repository.save(locacao);
     }
-
-    // Libera o veículo
-    Veiculo veiculo = locacao.getVeiculo();
-    veiculo.setDisponivel(true);
-    veiculoRepository.save(veiculo);
-
-    // Atualiza o status
-    locacao.setStatus("CANCELADA");
-    return repository.save(locacao);
-}
 }
