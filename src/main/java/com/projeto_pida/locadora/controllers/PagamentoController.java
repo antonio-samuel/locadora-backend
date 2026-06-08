@@ -45,4 +45,17 @@ public class PagamentoController {
         service.deletar(id);
         return ResponseEntity.noContent().build();
     }
+    
+    @PostMapping("/processar/{locacaoId}")
+public ResponseEntity<?> processar(
+        @PathVariable Long locacaoId,
+        @RequestBody java.util.Map<String, String> body) {
+    try {
+        String metodoPagamento = body.get("metodoPagamento");
+        Pagamento pagamento = service.processarPagamento(locacaoId, metodoPagamento);
+        return ResponseEntity.ok(pagamento);
+    } catch (RuntimeException e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
+    }
+}
 }

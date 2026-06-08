@@ -2,8 +2,8 @@ package com.projeto_pida.locadora.entities;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDateTime;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "pagamentos")
@@ -18,8 +18,8 @@ public class Pagamento {
     @JoinColumn(name = "locacao_id", nullable = false)
     private Locacao locacao;
 
-    private String metodoPagamento; // Ex: CARTAO, PIX, DINHEIRO
-    private String statusPagamento; // Ex: PAGO, PENDENTE
+    private String metodoPagamento;
+    private String statusPagamento;
     private String tokenTransacao;
     private LocalDateTime dataPagamento;
     private BigDecimal valorPago;

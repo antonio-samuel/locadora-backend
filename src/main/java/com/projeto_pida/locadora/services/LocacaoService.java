@@ -91,41 +91,40 @@ public class LocacaoService {
 
         return locacaoSalva;
     }
+public Locacao finalizarLocacao(Long id) {
+    Locacao locacao = repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Locação não encontrada"));
 
-    public Locacao realizarLocacao(Locacao locacao) {
-        Veiculo veiculo = veiculoRepository.findById(locacao.getVeiculo().getId())
-                .orElseThrow(() -> new RuntimeException("Veículo não encontrado"));
+    LocalDateTime dataReal = LocalDateTime.now();
+    locacao.setDataDevolucaoReal(dataReal);
 
-        if (!veiculo.getDisponivel()) {
-            throw new RuntimeException("Este veículo já está alugado no momento!");
-        }
+    BigDecimal valorDiaria = BigDecimal.valueOf(locacao.getVeiculo().getValorDiaria());
 
-        return salvar(locacao);
+    if (dataReal.isAfter(locacao.getDataDevolucaoPrevista())) {
+        BigDecimal multa = calcularMulta(locacao, dataReal);
+        locacao.setValorMulta(multa);
+        locacao.setValorTotal(locacao.getValorTotal().add(multa));
+    } else if (dataReal.isBefore(locacao.getDataDevolucaoPrevista())) {
+        long diasUsados = ChronoUnit.DAYS.between(
+            locacao.getDataEmprestimo(), dataReal
+        );
+        if (diasUsados <= 0) diasUsados = 1;
+        BigDecimal novoValor = valorDiaria.multiply(new BigDecimal(diasUsados));
+        locacao.setValorTotal(novoValor);
+        locacao.setValorMulta(BigDecimal.ZERO);
+    } else {
+        locacao.setValorMulta(BigDecimal.ZERO);
     }
 
-    public Locacao finalizarLocacao(Long id) {
-        Locacao locacao = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Locação não encontrada"));
+    // Veículo liberado mas aguarda pagamento antes de concluir
+    locacao.setStatus("AGUARDANDO_PAGAMENTO");
 
-        LocalDateTime dataReal = LocalDateTime.now();
-        locacao.setDataDevolucaoReal(dataReal);
+    Veiculo v = locacao.getVeiculo();
+    v.setDisponivel(true);
+    veiculoRepository.save(v);
 
-        if (dataReal.isAfter(locacao.getDataDevolucaoPrevista())) {
-            // Multa proporcional: diasAtraso × valorDiaria × 20%
-            BigDecimal multa = calcularMulta(locacao, dataReal);
-            locacao.setValorMulta(multa);
-            locacao.setValorTotal(locacao.getValorTotal().add(multa));
-            locacao.setStatus("CONCLUIDA_COM_ATRASO");
-        } else {
-            locacao.setStatus("CONCLUIDA_NO_PRAZO");
-        }
-
-        Veiculo v = locacao.getVeiculo();
-        v.setDisponivel(true);
-        veiculoRepository.save(v);
-
-        return repository.save(locacao);
-    }
+    return repository.save(locacao);
+}
 
     public Locacao alterar(Long id, Locacao obj) {
         Locacao entidade = repository.findById(id)
@@ -139,24 +138,42 @@ public class LocacaoService {
         }
 
         if (obj.getDataDevolucaoReal() != null) {
-            entidade.setDataDevolucaoReal(obj.getDataDevolucaoReal());
+    entidade.setDataDevolucaoReal(obj.getDataDevolucaoReal());
 
-            if (entidade.getDataDevolucaoReal().isAfter(entidade.getDataDevolucaoPrevista())) {
-                // Multa proporcional: diasAtraso × valorDiaria × 20%
-                BigDecimal multa = calcularMulta(entidade, entidade.getDataDevolucaoReal());
-                entidade.setValorMulta(multa);
-                entidade.setValorTotal(entidade.getValorTotal().add(multa));
-                entidade.setStatus("CONCLUIDA_COM_ATRASO");
-            } else {
-                entidade.setStatus("CONCLUIDA_NO_PRAZO");
-            }
+    BigDecimal valorDiaria = BigDecimal.valueOf(
+        entidade.getVeiculo().getValorDiaria()
+    );
 
-            if (entidade.getVeiculo() != null) {
-                entidade.getVeiculo().setDisponivel(true);
-                veiculoRepository.save(entidade.getVeiculo());
-            }
-        }
+    if (entidade.getDataDevolucaoReal().isAfter(entidade.getDataDevolucaoPrevista())) {
+        // Atraso
+        BigDecimal multa = calcularMulta(entidade, entidade.getDataDevolucaoReal());
+        entidade.setValorMulta(multa);
+        entidade.setValorTotal(entidade.getValorTotal().add(multa));
+        entidade.setStatus("CONCLUIDA_COM_ATRASO");
 
+    } else if (entidade.getDataDevolucaoReal().isBefore(entidade.getDataDevolucaoPrevista())) {
+        // Antecipada
+        long diasUsados = ChronoUnit.DAYS.between(
+            entidade.getDataEmprestimo(), entidade.getDataDevolucaoReal()
+        );
+        if (diasUsados <= 0) diasUsados = 1;
+
+        BigDecimal novoValor = valorDiaria.multiply(new BigDecimal(diasUsados));
+        entidade.setValorTotal(novoValor);
+        entidade.setValorMulta(BigDecimal.ZERO);
+        entidade.setStatus("CONCLUIDA_NO_PRAZO");
+
+    } else {
+        // Exatamente no prazo
+        entidade.setValorMulta(BigDecimal.ZERO);
+        entidade.setStatus("CONCLUIDA_NO_PRAZO");
+    }
+
+    if (entidade.getVeiculo() != null) {
+        entidade.getVeiculo().setDisponivel(true);
+        veiculoRepository.save(entidade.getVeiculo());
+    }
+}
         return repository.save(entidade);
     }
 
