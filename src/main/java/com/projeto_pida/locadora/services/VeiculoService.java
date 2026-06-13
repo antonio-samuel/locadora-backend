@@ -22,23 +22,29 @@ public class VeiculoService {
         Optional<Veiculo> obj = repository.findById(id);
         return obj.orElse(null);
     }
-
-    public Veiculo salvar(Veiculo veiculo) {
-        return repository.save(veiculo);
+    public Veiculo salvar(Veiculo obj) {
+    
+    return repository.save(obj);
     }
 
     public void deletar(Long id) {
         repository.deleteById(id);
     }
-
-    public Veiculo alterar(Long id, Veiculo obj) {
-    Veiculo entidade = repository.getReferenceById(id);
-    entidade.setModelo(obj.getModelo());
+    
+    public List<Veiculo> listarDisponiveis() {
+    return repository.buscarDisponiveis();
+}
+   public Veiculo alterar(Long id, Veiculo obj) {
+    Veiculo entidade = repository.findById(id).orElseThrow();
     entidade.setMarca(obj.getMarca());
+    entidade.setModelo(obj.getModelo());
+    entidade.setPlaca(obj.getPlaca());
     entidade.setCor(obj.getCor());
     entidade.setAno(obj.getAno());
     entidade.setValorDiaria(obj.getValorDiaria());
     entidade.setDisponivel(obj.getDisponivel());
+    entidade.setFotoUrl(obj.getFotoUrl());   // 👈 imprescindível
+   entidade.setCategoria(obj.getCategoria());
     return repository.save(entidade);
 }
 }

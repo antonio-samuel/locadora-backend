@@ -9,20 +9,23 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "*") // Libera para o frontend conseguir consumir a API
+// Libera para o frontend conseguir consumir a API
 @RequestMapping("/veiculos")
 public class VeiculoController {
 
     @Autowired
     private VeiculoService service;
 
+    @GetMapping("/disponiveis")
+    public ResponseEntity<List<Veiculo>> listarDisponiveis() {
+    return ResponseEntity.ok(service.listarDisponiveis());
+}
     // Listar todos: GET http://localhost:8081/veiculos
     @GetMapping
     public ResponseEntity<List<Veiculo>> findAll() {
         List<Veiculo> lista = service.listarTodos();
         return ResponseEntity.ok().body(lista);
     }
-
     // Buscar por ID: GET http://localhost:8081/veiculos/1
     @GetMapping("/{id}")
     public ResponseEntity<Veiculo> findById(@PathVariable Long id) {

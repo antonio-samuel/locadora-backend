@@ -19,4 +19,6 @@ public class Veiculo {
     private Integer ano;
     private Double valorDiaria;
     private Boolean disponivel;
+     private String fotoUrl;
+     private String categoria;   // ex.: HATCH, SUV, SEDAN, PICKUP
 }

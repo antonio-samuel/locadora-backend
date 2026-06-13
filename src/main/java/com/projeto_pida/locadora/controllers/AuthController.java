@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@CrossOrigin(origins = "*")
+
 @RequestMapping("/auth")
 public class AuthController {
 
@@ -37,9 +37,13 @@ public class AuthController {
         if (!passwordEncoder.matches(senha, usuario.getSenha())) {
             return ResponseEntity.status(401).body("CREDENCIAIS_INVALIDAS");
         }
-
+        System.out.println("Senha informada: " + senha);
+        System.out.println("Senha do banco (hash): " + usuario.getSenha());
+        System.out.println("Match: " + passwordEncoder.matches(senha, usuario.getSenha()));
         // Remove a senha antes de retornar ao frontend
         usuario.setSenha(null);
         return ResponseEntity.ok(usuario);
+        
     }
+    
 }

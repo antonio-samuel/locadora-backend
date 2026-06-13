@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "*") // Libera para o frontend conseguir consumir a API
+// Libera para o frontend conseguir consumir a API
 @RequestMapping("/usuarios")
 public class UsuarioController {
 

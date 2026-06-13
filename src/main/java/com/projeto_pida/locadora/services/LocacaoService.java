@@ -57,8 +57,8 @@ public class LocacaoService {
             .multiply(new BigDecimal("0.02"));
     }
 
-    public Locacao salvar(Locacao locacao) {
-        // 1. Busca o veículo e valida
+   public Locacao salvar(Locacao locacao) {
+        // 1. Busca o veículo e valida (aqui ele vem com marca, modelo, placa, etc)
         Veiculo veiculo = veiculoRepository.findById(locacao.getVeiculo().getId())
                 .orElseThrow(() -> new RuntimeException("Veículo não encontrado"));
 
@@ -76,15 +76,21 @@ public class LocacaoService {
         veiculo.setDisponivel(false);
         veiculoRepository.save(veiculo);
 
+        // Atualiza a referência da locação com o veículo completo
+        locacao.setVeiculo(veiculo);
+
         // 4. Salva a locação
         Locacao locacaoSalva = repository.save(locacao);
 
         // 5. Cria notificação automática
         Notificacao nota = new Notificacao();
         nota.setUsuario(locacaoSalva.getUsuario());
+        
+        // USANDO A VARIÁVEL 'veiculo'  QUE ESTÁ COMPLETA
         nota.setMensagem("Reserva confirmada: Veículo "
-            + locacaoSalva.getVeiculo().getModelo()
+            + veiculo.getModelo()
             + " — Valor: R$ " + locacaoSalva.getValorTotal());
+            
         nota.setDataEnvio(LocalDateTime.now());
         nota.setLida(false);
         notificacaoRepository.save(nota);

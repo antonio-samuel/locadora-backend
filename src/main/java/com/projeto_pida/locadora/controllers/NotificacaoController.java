@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "*") // Libera para o frontend conseguir consumir a API
+@CrossOrigin(origins = "*")
 @RequestMapping("/notificacoes")
 public class NotificacaoController {
 
@@ -18,26 +18,42 @@ public class NotificacaoController {
 
     @GetMapping
     public ResponseEntity<List<Notificacao>> findAll() {
-        List<Notificacao> lista = service.listarTodos();
-        return ResponseEntity.ok().body(lista);
+        return ResponseEntity.ok(service.listarTodos());
+    }
+
+    @GetMapping("/usuario/{usuarioId}")
+    public ResponseEntity<List<Notificacao>> findByUsuario(@PathVariable Long usuarioId) {
+        return ResponseEntity.ok(service.listarPorUsuario(usuarioId));
+    }
+
+    @GetMapping("/usuario/{usuarioId}/nao-lidas")
+    public ResponseEntity<List<Notificacao>> findNaoLidas(@PathVariable Long usuarioId) {
+        return ResponseEntity.ok(service.listarNaoLidasPorUsuario(usuarioId));
+    }
+
+    @GetMapping("/usuario/{usuarioId}/contador")
+    public ResponseEntity<Long> contarNaoLidas(@PathVariable Long usuarioId) {
+        return ResponseEntity.ok(service.contarNaoLidas(usuarioId));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Notificacao> findById(@PathVariable Long id) {
-        Notificacao obj = service.buscarPorId(id);
-        return ResponseEntity.ok().body(obj);
+        return ResponseEntity.ok(service.buscarPorId(id));
     }
 
     @PostMapping
     public ResponseEntity<Notificacao> insert(@RequestBody Notificacao obj) {
-        obj = service.salvar(obj);
-        return ResponseEntity.ok().body(obj);
+        return ResponseEntity.ok(service.salvar(obj));
+    }
+
+    @PutMapping("/{id}/lida")
+    public ResponseEntity<Notificacao> marcarLida(@PathVariable Long id) {
+        return ResponseEntity.ok(service.marcarComoLida(id));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Notificacao> update(@PathVariable Long id, @RequestBody Notificacao obj) {
-        obj = service.alterar(id, obj);
-        return ResponseEntity.ok().body(obj);
+        return ResponseEntity.ok(service.alterar(id, obj));
     }
 
     @DeleteMapping("/{id}")
