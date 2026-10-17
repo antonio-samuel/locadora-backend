@@ -23,7 +23,7 @@ public class NotificacaoScheduler {
      * Roda todo dia às 08:00.
      * Busca locações com devolução prevista para amanhã e notifica o cliente.
      */
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 0 8 * * *")
     public void notificarVencimentoAmanha() {
         LocalDateTime amanha      = LocalDateTime.now().plusDays(1);
         LocalDateTime amanhaInicio = amanha.toLocalDate().atStartOfDay();
